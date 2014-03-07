@@ -1,0 +1,494 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0055)http://lasr.cs.ucla.edu/vahab/cs111/labs/lab4/lab4.html -->
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" dir="ltr" lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  
+  <title>
+    lab4    [CS111]
+  </title>
+
+  <meta name="generator" content="DokuWiki">
+<meta name="robots" content="index,follow">
+<meta name="date" content="2011-03-05T15:51:11-0800">
+<meta name="keywords" content="lab4">
+<link rel="search" type="application/opensearchdescription+xml" href="http://www.read.cs.ucla.edu/111/lib/exe/opensearch.php" title="CS111">
+<link rel="start" href="http://www.read.cs.ucla.edu/111/">
+<link rel="contents" href="http://www.read.cs.ucla.edu/111/lab4?do=index" title="Sitemap">
+<link rel="alternate" type="application/rss+xml" title="Recent Changes" href="http://www.read.cs.ucla.edu/111/feed.php">
+<link rel="alternate" type="application/rss+xml" title="Current Namespace" href="http://www.read.cs.ucla.edu/111/feed.php?mode=list&ns=">
+<link rel="alternate" type="text/html" title="Plain HTML" href="http://www.read.cs.ucla.edu/111/_export/xhtml/lab4">
+<link rel="alternate" type="text/plain" title="Wiki Markup" href="http://www.read.cs.ucla.edu/111/_export/raw/lab4">
+<link rel="canonical" href="http://www.read.cs.ucla.edu/111/lab4">
+<link rel="stylesheet" media="screen" type="text/css" href="./lab4_files/css.css">
+<link rel="stylesheet" media="all" type="text/css" href="./lab4_files/css_002.css">
+<link rel="stylesheet" media="print" type="text/css" href="./lab4_files/css_003.css">
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var NS='';var JSINFO = {"id":"lab4","namespace":""};
+//--><!]]></script><style type="text/css"></style>
+<script type="text/javascript" charset="utf-8" src="./lab4_files/js.php"></script><style type="text/css" media="screen"><!--/*--><![CDATA[/*><!--*/ .folded.hidden { display: none; } .folder .indicator { visibility: visible; } /*]]>*/--></style><style type="text/css" media="screen"><!--/*--><![CDATA[/*><!--*/ .folded.hidden { display: none; } .folder .indicator { visibility: visible; } /*]]>*/--></style>
+
+  <link rel="shortcut icon" href="http://www.read.cs.ucla.edu/111/lib/tpl/osp/images/favicon.ico">
+
+  </head>
+
+<body>
+
+
+<div class="dokuwiki">
+  
+  <div class="stylehead">
+
+
+
+    
+
+
+    
+    
+    <div class="clearer"></div>
+  </div>
+  
+  
+  <div class="page">
+    <!-- wikipage start -->
+    <!-- TOC START -->
+<!-- TOC END -->
+
+<h1><a name="lab-4" id="lab-4">Lab 4</a></h1>
+<div class="level1">
+
+</div>
+
+<h2><a name="handin-procedure" id="handin-procedure">Handin Procedure</a></h2>
+<div class="level2">
+
+<p>
+
+When you are finished, edit the <code>answers.txt</code> file and add your name(s) and email
+address(es), student ID(s), any challenge problems you may have done.
+</p>
+
+<p>
+<strong>ALSO REMEMBER TO WRITE THE INFORMATION REQUIRED BY TASKS 2 AND 
+3, INCLUDING WHICH ROBUSTNESS PROBLEMS YOU FIXED, AND HOW YOU MADE YOUR 
+PEER EVIL!</strong>
+</p>
+
+<p>
+Also include any other information you'd like us to have. Then run <code>make tarball</code>, which will generate a file <code>lab4-<em>yourusername</em>.tar.gz</code> inside the lab4 directory. Upload this file to CourseWeb using a web browser to turn in the project.
+</p>
+
+</div>
+
+<h2><a name="overview" id="overview">Overview</a></h2>
+<div class="level2">
+
+<p>
+
+This lab concerns distributed computing and security via defensive programming.
+</p>
+
+<p>
+Distributed computing uses operating system interfaces to build complex systems from <em>many</em> interacting computers.  Your Lab 4 code participates in a <em>peer-to-peer (P2P) network</em>, formed by connecting nodes that can perform <em>both</em>
+ the roles of clients 
+and servers.  You're probably familiar with peer-to-peer networks used 
+for downloading files, such as BitTorrent; we have designed a 
+peer-to-peer system somewhat like BitTorrent, from which you can 
+download some <a href="http://www.icanhascheezburger.com/" class="urlextern" title="http://www.icanhascheezburger.com/" rel="nofollow">lolcats</a>.
+</p>
+
+<p>
+Our peer-to-peer network consists of two kinds of nodes: <strong>trackers</strong> and <strong>peers</strong>.
+  Trackers keep track of which peers are connected to the network; peers
+ actually download files from each other.  We have written a tracker and
+ a functional peer.  When you download <code>lab4.tar.gz</code>, our peer code is in <code>osppeer.c</code>.  We also have five trackers running on our own server.  They are:
+
+</p>
+<ul>
+<li class="level1"><div class="li"> 131.179.80.139:11111 -- the <em>normal tracker</em>.
+  Students' peers can connect to this tracker and serve files to each 
+other.  This tracker is "seeded" with a mixture of good and slow peers 
+running on our servers.</div>
+</li>
+<li class="level1"><div class="li"> 131.179.80.139:11112 -- the <em>good tracker</em>.  Our own peers are connected to this tracker.</div>
+</li>
+<li class="level1"><div class="li"> 131.179.80.139:11113 -- the <em>slow tracker</em>.
+  Slow peers, which serve files slowly, are running on this tracker.  
+You can use this tracker to verify that your peer downloads files in 
+parallel.</div>
+</li>
+<li class="level1"><div class="li"> 131.179.80.139:11114 -- the <em>bad tracker</em>.  Bad peers, which attack other peers that attempt to connect, are running on this tracker.</div>
+</li>
+<li class="level1"><div class="li"> 131.179.80.139:11115 -- the <em>popular tracker</em>.  Our own peers are connected to this tracker, plus a bunch of fake peers, making the tracker look very popular.</div>
+</li>
+</ul>
+
+<p>
+
+Peer-to-peer communication in the OSP2P system is built from a series of
+ remote procedure calls (RPCs).  These RPCs are formatted as normal 
+text, formatted somewhat like other Internet protocols (HTTP, FTP, SMTP,
+ and so forth).  So you can use the <code>telnet</code> program to try out the RPCs yourself!
+</p>
+
+</div>
+
+<h3><a name="the-osp2p-protocol" id="the-osp2p-protocol">The OSP2P Protocol</a></h3>
+<div class="level3">
+
+<p>
+
+A peer logs in to a tracker as follows.
+
+</p>
+<ol>
+<li class="level1"><div class="li"> The peer connects to the tracker machine.</div>
+</li>
+<li class="level1"><div class="li"> The tracker responds with a greeting message.</div>
+</li>
+<li class="level1"><div class="li"> The peer registers its IP address and port with an "<code>ADDR</code>" RPC.</div>
+</li>
+<li class="level1"><div class="li"> The tracker responds with a message 
+indicating success or failure.  Now the tracker will report this peer to
+ other peers who want to download files.</div>
+</li>
+</ol>
+
+<p>
+
+Here's a picture of this protocol.
+</p>
+
+<p>
+<img src="./lab4_files/osp2pconnect.gif" class="media" title="OSP2P Connection Protocol" alt="OSP2P Connection Protocol">
+
+</p>
+<hr>
+
+<p>
+The peer then informs the tracker of the files it is willing to upload to others.
+
+</p>
+<ol>
+<li class="level1"><div class="li"> The peer registers each file with a "<code>HAVE <em>filename</em></code>" RPC.</div>
+</li>
+<li class="level1"><div class="li"> The tracker responds with a message indicating success or failure.</div>
+</li>
+</ol>
+
+<p>
+
+When a peer wants to download a file from the network, it communicates with <em>both</em> the tracker <em>and</em> other peers.
+
+</p>
+<ol>
+<li class="level1"><div class="li"> The downloading peer asks the tracker which peers have the file with a "<code>WANT <em>filename</em></code>" RPC.</div>
+</li>
+<li class="level1"><div class="li"> The tracker responds with a message listing the available peers willing to serve that file.</div>
+</li>
+<li class="level1"><div class="li"> The downloading peer picks an available peer from this set, and connects to that peer, sending it a "<code>GET <em>filename</em> OSP2P</code>" RPC.</div>
+</li>
+<li class="level1"><div class="li"> The uploading peer responds to this RPC by sending the entire file.</div>
+</li>
+</ol>
+
+<p>
+
+<img src="./lab4_files/osp2pdownload.gif" class="media" title="OSP2P Download Protocol" alt="OSP2P Download Protocol">
+
+</p>
+<hr>
+
+<p>
+Once the downloading peer has downloaded the entire file, it informs the tracker that it, too, has the file.
+
+</p>
+<ol>
+<li class="level1"><div class="li"> The downloading peer registers its newly downloaded file with a "<code>HAVE <em>filename</em></code>" RPC.</div>
+</li>
+<li class="level1"><div class="li"> The tracker responds with a message indicating success or failure.</div>
+</li>
+</ol>
+
+</div>
+
+<h2><a name="what-you-must-do" id="what-you-must-do">What You Must Do</a></h2>
+<div class="level2">
+
+<p>
+
+At a high level, there are three parts to this lab.
+
+</p>
+<ol>
+<li class="level1"><div class="li"> The peer code that we hand out is <em>sequential</em>:
+ it downloads from peers, and uploads to peers, one at a time.  Since 
+the network to any one peer is likely a bottleneck, sequential 
+downloading has poor utilization.  You are to make the peer behave <em>in parallel</em>: it should be able to download from peers, and upload to peers, more than one at a time.</div>
+</li>
+<li class="level1"><div class="li"> The peer code that we hand out is <em>not robust</em>:
+ communicating with an evil peer can cause your peer code to crash or 
+hang forever.  You are to fix the peer code to make it robust.  This 
+requires defensive programming.</div>
+</li>
+<li class="level1"><div class="li"> The peer code that we hand out is <em>good</em>, i.e., not evil.  You are to make your peer code optionally <em>evil</em>: if you start the peer with the <code>-b</code> option (b is for "bad"), it will try to confuse or crash any peers that attempt to download files from it.</div>
+</li>
+</ol>
+
+<p>
+
+Lab 4 does not have explicitly marked exercises; you have more freedom to change the code however you think is necessary.
+</p>
+
+<p>
+</p>
+
+</div>
+
+<h2><a name="investigating-the-osp2p-protocol" id="investigating-the-osp2p-protocol">Investigating the OSP2P Protocol</a></h2>
+<div class="level2">
+
+<p>
+
+We recommend that you first play around with the OSP2P protocol by running our peer, and by using the <code>telnet</code> program to talk directly to our trackers and peers.
+</p>
+
+<p>
+First, run <code>make run-good</code>.  This will build our peer, start it and connect to the good tracker, and download three files into the <code>test/</code> directory, <code>cat1.jpg</code>, <code>cat2.jpg</code>, and <code>cat3.jpg</code>.  Here's what we see.
+</p>
+<pre class="code">+ ./osppeer -dtest -t11112 cat1.jpg cat2.jpg cat3.jpg
+* Tracker's greeting:
+200-Welcome to the OSP2P tracker!
+200-You will be timed out after 600 seconds of inactivity.
+200 Try 'HELP' to get a list of commands.
+* Listening on port 11112
+* Tracker's response to our IP address registration:
+220-This tracker is set up to ignore external peers,
+220-so that you don't have to worry about problems caused by other students.
+220 The address registration has been ignored.
+* Registering our files with tracker
+* Finding peers for 'cat1.jpg'
+* Connecting to 131.179.80.160:11114 to download 'cat1.jpg'
+* Saving result to 'cat1.jpg'
+* Downloaded 'cat1.jpg' was 44400 bytes long
+* Finding peers for 'cat2.jpg'
+* Connecting to 131.179.80.160:11114 to download 'cat2.jpg'
+* Saving result to 'cat2.jpg'
+* Downloaded 'cat2.jpg' was 41259 bytes long
+* Finding peers for 'cat3.jpg'
+* Connecting to 131.179.80.31:11114 to download 'cat3.jpg'
+* Saving result to 'cat3.jpg'
+* Downloaded 'cat3.jpg' was 34812 bytes long</pre>
+
+<p>
+<code>osppeer</code> will then pause, waiting for other peers to upload 
+files from it.  If you wait long enough, you will see some additional 
+messages, like this:
+</p>
+<pre class="code">* Got connection from 131.179.80.31:33916
+* Transferring file cat3.jpg
+* Upload of cat3.jpg complete
+* Got connection from 131.179.80.31:33917
+* Odd request CHECKUPLOAD cat3.jpg successful!</pre>
+
+<p>
+The "good" tracker has a special additional feature, where our peers 
+connect back to your peer and attempt to download files from it.  If the
+ download succeeds, and the file contents match the expected values, our
+ peers inform you by connecting with a message like "<code>CHECKUPLOAD cat3.jpg successful!</code>".  If there is a problem, you will see a message like "<code>CHECKUPLOAD cat3.jpg FAILED: empty file</code>", or something else.  <em>This only works on the good tracker.</em>
+</p>
+
+<p>
+Press Control-C to quit <code>osppeer</code>.  To run against different trackers, try <code>make run</code> (normal tracker), <code>make run-slow</code>, and <code>make run-bad</code>.
+</p>
+
+<p>
+You can also run <code>./osppeer</code> yourself from the command line.  Here's what its arguments mean.
+
+</p>
+<ul>
+<li class="level1"><div class="li"> <code>-dtest</code> : Run in the <code>test</code> directory.  The peer will register all files located in the <code>test</code> directory with the tracker, and download files into the <code>test</code> directory.  You should generally run with the <code>-dtest</code> argument.</div>
+</li>
+<li class="level1"><div class="li"> <code>-t11112</code> : The <code>-t</code>
+ argument specifies the tracker IP address and/or port.  You will 
+generally just specify ports; 11111 is the normal tracker, 11112 is the 
+good tracker, 11113 is the slow tracker, and 11114 is the evil tracker. 
+ The default tracker IP address is 131.179.80.139.</div>
+</li>
+<li class="level1"><div class="li"> <code>cat1.jpg cat2.jpg cat3.jpg</code> : These are the names of files that <code>./osppeer</code> should try to download.  If you give no filename arguments, <code>./osppeer</code> will not download any files.</div>
+</li>
+</ul>
+
+<p>
+
+If you run <code>make run-slow</code>, you will see what we mean by "slow peers".  And if you run <code>make run-bad</code>, our peers will do their worst to your peer, attempting to crash it or monopolize its resources.
+</p>
+
+<p>
+Now, try connecting to the tracker and to a peer <em>yourself</em> with the <code>telnet</code> program.  All the OSP2P RPCs use a text-based format which you can type yourself.  Run "<code>telnet read.cs.ucla.edu 11111</code>" to connect to a tracker.  Type <code>HELP</code>, then play around with some of the other commands.  Type <code>QUIT</code> to quit the connection.  Run "<code>telnet read.cs.ucla.edu 11116</code>" to connect to one of our (normal) peers.  Type "<code>GET about.txt OSP2P</code>" to request a file.  The peer should shut down the connection automatically after sending the file.
+</p>
+
+</div>
+
+<h2><a name="task-1parallel-uploads-and-downloads" id="task-1parallel-uploads-and-downloads">Task 1: Parallel Uploads and Downloads</a></h2>
+<div class="level2">
+
+<p>
+
+The skeleton code that we hand out is a fully functioning OSP2P peer client, but all of its actions
+are performed <em>serially</em>.  In particular, if multiple desired files 
+are given on the command line, they are processed one at a time.  Only
+after the client successfully downloads the first file (or fails for all peers sharing the file)
+does it attempt to download the second.  Similarly, once the client begins accepting
+connections from peers, it processes them one at a time.
+</p>
+
+<p>
+Your first task is to change the code so that it can process multiple downloads in parallel
+and multiple uploads in parallel.  This is a fairly open-ended problem.  You may choose
+to implement the concurrency by forking processes (like your shell in lab 1), or by using 
+threads.  You can also implement parallel downloads and uploads using  <em>non-blocking I/O</em> and an <em>event-driven</em> style.
+Event-driven programming is the most challenging programming style for this lab, but frequently event-driven programs
+both run faster and use fewer resources than other programming styles.  If you are a real performance junkie try events.
+(We have a description of event-driven programming <a href="http://www.read.cs.ucla.edu/111/lab4-eventdriven" class="wikilink1" title="lab4-eventdriven">here</a>.  You might also want to try using an event-driven
+programming library, such as <a href="http://www.monkey.org/~provos/libevent/" class="urlextern" title="http://www.monkey.org/~provos/libevent/" rel="nofollow">libevent</a> or <a href="http://www.read.cs.ucla.edu/tamer/" class="urlextern" title="http://www.read.cs.ucla.edu/tamer/" rel="nofollow">Tamer</a>.)
+</p>
+
+<p>
+Your client may process downloads in parallel
+with uploads, or it may processes downloads in parallel and then, once all downloads are done, processes uploads in parallel.  
+Either approach is acceptable.
+</p>
+
+<p>
+No matter which approach you choose, you must ensure that your code does not spin (busy-wait -- wait with poor utilization).
+In particular, when your client is not downloading or uploading, it should be using
+very little CPU time.  Even when it is uploading or downloading multiple files at once,
+it should <em>not</em> take 90-100% of the CPU.  You can use the <code>top</code> program to see
+how much CPU time is being used by <code>osppeer</code>.
+</p>
+
+</div>
+
+<h2><a name="task-2security-and-defensive-programming" id="task-2security-and-defensive-programming">Task 2: Security and Defensive Programming</a></h2>
+<div class="level2">
+
+<p>
+
+Writing networked programs is difficult not just because of the need for
+speed, but also because it is very important to avoid <strong>security holes</strong>.
+These are programming mistakes that might allow an attacker to crash the
+networked program, cause it to misbehave, trick it into doing something it
+shouldn't, or even gain access to the machine.
+</p>
+
+<p>
+Your job is to fix our peer's security holes and make it robust against as many attacks and network problems as you can imagine.
+</p>
+
+<p>
+Here's what the peer <em>should</em> do: its intended specification.
+
+</p>
+<ul>
+<li class="level1"><div class="li"> The peer should serve files located in its current directory to requesting peers.  </div>
+</li>
+<li class="level2"><div class="li"> The peer <strong>should not</strong> serve files located in any other directory.</div>
+</li>
+<li class="level2"><div class="li"> Other peers should not be able to 
+monopolize the peer's resources.  For example, another peer should not 
+be able to fill up this peer's disk, or fill up its file descriptor 
+table with non-functioning connections.</div>
+</li>
+</ul>
+
+<p>
+
+Furthermore, there is at least one buffer overflow bug in the code that could crash
+your client with a segmentation fault -- or, worse, give an attacker control of your 
+computer! While a buffer overflow bug would not
+happen in a safe language like Java, other security bugs can happen in <strong>any</strong>
+language.  It is important for you to understand the need for careful
+programming in any network environment like this.
+</p>
+
+<p>
+Your job is to solve the following problems:
+
+</p>
+<ul>
+<li class="level1"><div class="li"> The peer should not serve files outside the current directory.  </div>
+</li>
+<li class="level2"><div class="li"> Find and fix any buffer overrun bugs.  <strong>List conditions that would have triggered the bugs in your <code>answers.txt</code> file.</strong></div>
+</li>
+<li class="level2"><div class="li"> Otherwise improve the peer's robustness.  Use <code>make run-bad</code>
+ to test your client; our "bad" tracker tries to abuse connecting peers 
+in a variety of interesting ways.  (It chooses random attack strategies 
+each time.)  You should be able to run <code>make run-bad</code> indefinitely, without eventually running out of disk space or memory or file descriptors.  <strong>Tell us what robustness problems you fixed in your <code>answers.txt</code> file.</strong></div>
+</li>
+</ul>
+
+<p>
+
+If you find other problems, feel free to solve them too, and tell us about them for extra credits. Submit a different document named *extra_credit*, other than your .tar.gz file. 
+</p>
+
+<p>
+In general, you may assume that only peers will attack you; the tracker is <em>trusted</em>.
+  However, there is one bug in our handout code's tracker communication:
+ if many, many peers are logged in at once, then our peer will be unable
+ to download anything, because communications with the tracker will get 
+confused.  You should find and fix this bug as well.  To test, run your <code>osppeer</code> program against the popular tracker.  A message like <code>tracker connection closed prematurely!</code> indicates that you haven't fixed the bug.
+</p>
+
+</div>
+
+<h2><a name="task-3attack" id="task-3attack">Task 3: Attack!!!</a></h2>
+<div class="level2">
+
+<p>
+
+Your final task is to be the bad guy.  Find <strong>at least two</strong> ways that a malicious peer client could
+attack the client implemented by the skeleton code (and potentially other students' clients).  
+The attack may cause the client to crash or may simply cause it to fail to respond to 
+legitimate requests or run out of resources (denial of service).  Your peer should go into "malicious mode"
+when the <code>evil_mode</code> global variable is nonzero.  It may 
+attack only those peers that actively try to download its files 
+("uploader attacks"), or, even better, <strong>seek out new peers to attack</strong> by connecting to them ("downloader attacks")!
+</p>
+
+<p>
+Add these security exploits to your client code.  These attacks should only be active
+when the <code>evil_mode</code> flag is set.  Otherwise, your code should behave nicely.
+<strong>Also add a description of your attacks
+in the <code>answers.txt</code> file.  Why are your attacks actually attacks?</strong>
+</p>
+
+
+</div>
+
+<h2><a name="extra-credit-taskfile-integrity" id="extra-credit-taskfile-integrity">Extra Credit Task: File Integrity</a></h2>
+<div class="level2">
+
+<p>
+
+Many of the evil peers' attacks are pretty easy to detect, but some are 
+not so easy.  In particular, how can your peer detect that an evil peer 
+has sent a corrupted version of the file?
+</p>
+
+<p>
+The OSP2P system actually already supports a strategy for detecting corruption, called <em>cryptographic hash functions</em> or <em>checksums</em>.  When our clients connect to the tracker, they not only register interest in the file, they also tell the tracker the <a href="http://en.wikipedia.org/wiki/MD5" class="urlextern" title="http://en.wikipedia.org/wiki/MD5" rel="nofollow">MD5 checksum</a> of the file's data (calculated with <code>md5_init</code>, <code>md5_append</code>, and <code>md5_finish_text(...,1)</code>; these functions are defined in <code>md5.h</code>).  Another peer can compare this checksum with the checksum of the file they download.
+</p>
+
+<p>
+Your job in this extra credit task is to detect corruption (intentional 
+or not) using the trackers' checksum support.  We aren't saying much 
+more about <em>how</em> to do this; poke around on the tracker using <code>telnet</code> to figure out how checksum support works.
+</p>
+
+</div>
+
+
+
+
+</div></div></body></html>
