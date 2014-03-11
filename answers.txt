@@ -17,6 +17,7 @@ Forking.
 
 # EXERCISE 2B: What other robustness problems did you fix?	(~1-3 sentences
 #	 each)
+ - Checked that requested files were within the current directory.
 
 # EXERCISE 3: Describe the attacks you implemented for "evil mode".	 Why
 #	 are they attacks?	(~3-10 sentences each)
