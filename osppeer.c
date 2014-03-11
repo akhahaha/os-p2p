@@ -92,8 +92,9 @@ static task_t *task_new(tasktype_t type)
 	t->total_written = 0;
 	t->peer_list = NULL;
 
-	strcpy(t->filename, "");
-	strcpy(t->disk_filename, "");
+	// zero out filenames
+	memset(t->filename, 0, FILENAMESIZ);
+	memset(t->disk_filename, 0, FILENAMESIZ);
 
 	return t;
 }
@@ -476,7 +477,8 @@ task_t *start_download(task_t *tracker_task, const char *filename)
 		error("* Error while allocating task");
 		goto exit;
 	}
-	strcpy(t->filename, filename);
+	strncpy(t->filename, filename, FILENAMESIZ-1);
+	t->filename[FILENAMESIZ-1] = '\0';
 
 	// add peers
 	s1 = tracker_task->buf;
@@ -532,8 +534,10 @@ static void task_download(task_t *t, task_t *tracker_task)
 	// "foo.txt~1~".  However, if there are 50 local files, don't download
 	// at all.
 	for (i = 0; i < 50; i++) {
-		if (i == 0)
-			strcpy(t->disk_filename, t->filename);
+		if (i == 0) {
+			strncpy(t->disk_filename, t->filename, FILENAMESIZ-1);
+			t->disk_filename[FILENAMESIZ-1] = '\0';
+		}
 		else
 			sprintf(t->disk_filename, "%s~%d~", t->filename, i);
 		t->disk_fd = open(t->disk_filename,
