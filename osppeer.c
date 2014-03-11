@@ -35,8 +35,9 @@ static int listen_port;
  * a bounded buffer that simplifies reading from and writing to peers.
  */
 
-#define TASKBUFSIZ	4096	// Size of task_t::buf
-#define FILENAMESIZ	256	// Size of task_t::filename
+#define TASKBUFSIZ	4096		// Size of task_t::buf
+#define FILENAMESIZ	256		// Size of task_t::filename
+#define MAXFILESIZ	TASKBUFSIZ*256	// Max file download size
 
 typedef enum tasktype {		// Which type of connection is this?
 	TASK_TRACKER,		// => Tracker connection
@@ -477,6 +478,13 @@ task_t *start_download(task_t *tracker_task, const char *filename)
 		error("* Error while allocating task");
 		goto exit;
 	}
+
+	// check filename size
+	if (strlen(t->filename) > FILENAMESIZ) {
+		error("* Filename too large.\n");
+		goto exit;
+	}
+
 	strncpy(t->filename, filename, FILENAMESIZ-1);
 	t->filename[FILENAMESIZ-1] = '\0';
 
@@ -507,6 +515,12 @@ static void task_download(task_t *t, task_t *tracker_task)
 	int i, ret = -1;
 	assert((!t || t->type == TASK_DOWNLOAD)
 		   && tracker_task->type == TASK_TRACKER);
+		   
+	// check filename size
+	if (strlen(t->filename) > FILENAMESIZ) {
+		error("* Filename too large.\n");
+		goto try_again;
+	}
 
 	// Quit if no peers, and skip this peer
 	if (!t || !t->peer_list) {
@@ -571,6 +585,11 @@ static void task_download(task_t *t, task_t *tracker_task)
 		ret = write_from_taskbuf(t->disk_fd, t);
 		if (ret == TBUF_ERROR) {
 			error("* Disk write error");
+			goto try_again;
+		}
+
+		if (t->total_written > MAXFILESIZ) {
+			error("* Download file too large\n");
 			goto try_again;
 		}
 	}
@@ -652,6 +671,12 @@ static void task_upload(task_t *t)
 		goto exit;
 	}
 	t->head = t->tail = 0;
+
+	// check filename size
+	if (strlen(t->filename) > FILENAMESIZ) {
+		error("* Filename too large.\n");
+		goto exit;
+	}
 
 	// check if file is within current working directory
 	char path[PATH_MAX];

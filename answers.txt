@@ -19,8 +19,11 @@ Forking.
 
 # EXERCISE 2B: What other robustness problems did you fix?	(~1-3 sentences
 #	 each)
- - Checked that requested files were within the current directory.
+ - Limited download size to TASKBUFSIZ*256 to preserve disk space.
  - Used memset() instead of strcpy() to zero filenames in task_new().
+ - Checked download filename length.
+ - Checked upload filename length.
+ - Checked that requested files were within the current directory.
 
 # EXERCISE 3: Describe the attacks you implemented for "evil mode".	 Why
 #	 are they attacks?	(~3-10 sentences each)
