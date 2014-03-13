@@ -515,7 +515,7 @@ static void task_download(task_t *t, task_t *tracker_task)
 	int i, ret = -1;
 	assert((!t || t->type == TASK_DOWNLOAD)
 		   && tracker_task->type == TASK_TRACKER);
-		   
+
 	// check filename size
 	if (strlen(t->filename) > FILENAMESIZ) {
 		error("* Filename too large.\n");
@@ -689,8 +689,8 @@ static void task_upload(task_t *t)
 		error("* Invalid file path.\n");
 		goto exit;
 	}
-	if (strncmp(cwd, t->filename, strlen(cwd))) {
-		error("* File not within current working directory.");
+	if (strncmp(cwd, path, strlen(cwd))) {
+		error("* File %s not within current working directory.\n", t->filename);
 		goto exit;
 	}
 
@@ -729,7 +729,7 @@ static void task_upload(task_t *t)
 //	The main loop!
 int main(int argc, char *argv[])
 {
-	task_t *tracker_task, *listen_task, *t;
+	task_t *tracker_task, *listen_task, *t, *prev;
 	struct in_addr tracker_addr;
 	int tracker_port;
 	char *s;
@@ -803,6 +803,7 @@ int main(int argc, char *argv[])
 	tracker_task = start_tracker(tracker_addr, tracker_port);
 	listen_task = start_listen();
 	register_files(tracker_task, myalias);
+	prev = NULL;
 
 	// First, download files named on command line.
 	for (; argc > 1; argc--, argv++)
@@ -819,6 +820,13 @@ int main(int argc, char *argv[])
 
 	// Then accept connections from other peers and upload files to them!
 	while ((t = task_listen(listen_task))) {
+		// deny immediate repeat requests from same peer
+		if (prev && prev->peer_fd == t->peer_fd) {
+			error("* Repeated request from same peer.\n");
+			prev = NULL;
+			continue;
+		}
+
 		// run uploads in concurrent processes
 		pid = fork();
 		if (pid == 0) {
@@ -827,6 +835,8 @@ int main(int argc, char *argv[])
 		}
 		else if (pid < 0)
 			error("* Fork error while uploading file\n");
+		else
+			prev = t;
 	}
 
 	return 0;

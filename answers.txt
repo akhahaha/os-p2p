@@ -24,6 +24,7 @@ Forking.
  - Checked download filename length.
  - Checked upload filename length.
  - Checked that requested files were within the current directory.
+ - Denied immediate repeat requests from the same peer to prevent hogging.
 
 # EXERCISE 3: Describe the attacks you implemented for "evil mode".	 Why
 #	 are they attacks?	(~3-10 sentences each)
