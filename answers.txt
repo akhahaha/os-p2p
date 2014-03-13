@@ -31,6 +31,7 @@ Forking.
  - Mode 1: Attempt filename buffer overflow using strcpy() vulnerability in 
    skeleton code. Should overwrite other variables and cause peer to segfault.
  - Mode 2: Attempt DOS attack by flooding peers with repeat file requests.
+ - Mode 3: Attempt disk overrun attack by endlessly uploading data to peer.
 
 # Extra credit problems
 # Extra credit problem: none
