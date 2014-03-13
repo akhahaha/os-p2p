@@ -28,6 +28,8 @@ Forking.
 
 # EXERCISE 3: Describe the attacks you implemented for "evil mode".	 Why
 #	 are they attacks?	(~3-10 sentences each)
+ - Mode 1: Attempt filename buffer overflow using strcpy() vulnerability in 
+   skeleton code. Should overwrite other variables and cause peer to segfault.
 
 # Extra credit problems
 # Extra credit problem: none
