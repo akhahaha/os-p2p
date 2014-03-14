@@ -34,6 +34,6 @@ Forking.
  - Mode 3: Attempt disk overrun attack by endlessly uploading data to peer.
 
 # Extra credit problems
-# Extra credit problem: none
+ - Implemented MD5 file integrity checking.
 
 # Add any other information you'd like us to know below this line.

@@ -73,6 +73,9 @@ typedef struct task {
 				// function initializes this list;
 				// task_pop_peer() removes peers from it, one
 				// at a time, if a peer misbehaves.
+
+	md5_state_t *md5_state;			// download MD5 state
+	char checksum[MD5_TEXT_DIGEST_SIZE+1];	// tracker MD5 checksum
 } task_t;
 
 
@@ -97,6 +100,11 @@ static task_t *task_new(tasktype_t type)
 	memset(t->filename, 0, FILENAMESIZ);
 	memset(t->disk_filename, 0, FILENAMESIZ);
 
+	// initialize MD5 vars
+	t->md5_state = (md5_state_t *) malloc(sizeof(md5_state_t));
+	md5_init(t->md5_state);
+	memset(t->checksum, 0, MD5_TEXT_DIGEST_SIZE+1);
+
 	return t;
 }
 
@@ -116,6 +124,7 @@ static void task_pop_peer(task_t *t)
 		t->head = t->tail = 0;
 		t->total_written = 0;
 		t->disk_filename[0] = '\0';
+		free(md5_state);
 
 		// Move to the next peer
 		if (t->peer_list) {
@@ -169,6 +178,10 @@ taskbufresult_t read_to_taskbuf(int fd, task_t *t)
 		amt = read(fd, &t->buf[tailpos], TASKBUFSIZ - tailpos);
 	else
 		amt = read(fd, &t->buf[tailpos], headpos - tailpos);
+
+	// append download data to MD5 hash
+	if (t->type == TASK_DOWNLOAD)
+		md5_append(t->md5_state, (md5_byte_t *) &t->buf[tailpos], amt);
 
 	if (amt == -1 && (errno == EINTR || errno == EAGAIN
 			  || errno == EWOULDBLOCK))
@@ -500,6 +513,15 @@ task_t *start_download(task_t *tracker_task, const char *filename)
 	if (s1 != tracker_task->buf + messagepos)
 		die("osptracker's response to WANT has unexpected format!\n");
 
+	// obtain MD5 checksum from tracker
+	osp2p_writef(tracker_task->peer_fd, "MD5SUM %s\n", t->filename);
+	messagepos = read_tracker_response(tracker_task);
+	if (tracker_task->buf[messagepos] != '2') {
+		error("* Tracker error message while requesting MD5 checksum\n");
+		goto exit;
+	}
+	strncpy(t->checksum, tracker_task->buf, MD5_TEXT_DIGEST_SIZE);
+
  exit:
 	return t;
 }
@@ -564,6 +586,7 @@ static void task_download(task_t *t, task_t *tracker_task)
 		error("* Cannot connect to peer: %s\n", strerror(errno));
 		goto try_again;
 	}
+
 	// Attack 1: attempt buffer overflow attack
 	if (evil_mode == 1) {
 		message("* Attacking with filename buffer overflow\n");
@@ -572,12 +595,10 @@ static void task_download(task_t *t, task_t *tracker_task)
 		char overflow[FILENAMESIZ*2];
 		memset(overflow, 1, FILENAMESIZ*2);
 
-		// send input
+		// send overflow input
 		osp2p_writef(t->peer_fd, "GET %s OSP2P\n", overflow);
-
-		// attempt with other peers
-		// goto try_again;
 	}
+
 	osp2p_writef(t->peer_fd, "GET %s OSP2P\n", t->filename);
 
 	// Open disk file for the result.
@@ -635,6 +656,19 @@ static void task_download(task_t *t, task_t *tracker_task)
 	if (t->total_written > 0) {
 		message("* Downloaded '%s' was %lu bytes long\n",
 			t->disk_filename, (unsigned long) t->total_written);
+
+		// verify file integrity
+		// compute and compare downloaded file checksum with tracker checksum
+		char md5[MD5_TEXT_DIGEST_SIZE+1];
+		memset(md5, 0, MD5_TEXT_DIGEST_SIZE+1);
+		if (md5_finish_text(t->md5_state, md5, 1) == MD5_TEXT_DIGEST_SIZE &&
+			strncmp(t->checksum, md5, MD5_TEXT_DIGEST_SIZE) == 0)
+			message("* File verification successful for '%s'\n", t->filename);
+		else {
+			error("* File verification failed for '%s'\n", t->filename);
+			goto try_again;
+		}
+
 		// Inform the tracker that we now have the file,
 		// and can serve it to others!	(But ignore tracker errors.)
 		if (strcmp(t->filename, t->disk_filename) == 0) {
