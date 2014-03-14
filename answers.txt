@@ -3,11 +3,6 @@ Name: Alan Kha
 Student ID: 904030522
 Email: akhahaha@gmail.com
 
-# Partner 2 (if you're working in a team)
-Name: Braden Anderson
-Student ID: 203744563
-Email: bradencanderson@gmail.com
-
 # EXERCISE 1: What method you used to make your peer download and upload
 #	 files in parallel?	 (~1-3 sentences)
 Forking.
