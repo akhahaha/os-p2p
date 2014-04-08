@@ -4,7 +4,7 @@ OS P2P
 	Professor Peter Reiher
 	Winter 2014
 
-	Alan Kha		904030522	akhahaha@gmail.com.com
+	Alan Kha		904030522	akhahaha@gmail.com
 -------------------------------------------------------------------------------
 Summary
 ---------------
